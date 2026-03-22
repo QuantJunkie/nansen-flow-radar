@@ -61,14 +61,14 @@ export function SignalTable({ rows, side }: Props) {
                   <span className="text-xs text-gray-300">—</span>
                 )}
               </td>
-              <td className="py-3 pr-4"><FlowCell value={row.ethFund} /></td>
-              <td className="py-3 pr-4"><FlowCell value={row.solFund} /></td>
-              <td className="py-3 pr-4"><FlowCell value={row.ethTrd} /></td>
-              <td className="py-3 pr-4"><FlowCell value={row.solTrd} /></td>
-              <td className="py-3 pr-4"><FlowCell value={row.eth7d} /></td>
-              <td className="py-3 pr-4"><FlowCell value={row.sol7d} /></td>
-              <td className="py-3 pr-4"><FlowCell value={row.eth30d} /></td>
-              <td className="py-3 pr-4"><FlowCell value={row.sol30d} /></td>
+              <td className="py-3 pr-4"><FlowCell value={row.ethFund} href={row.ethAddress ? `https://etherscan.io/token/${row.ethAddress}` : undefined} /></td>
+              <td className="py-3 pr-4"><FlowCell value={row.solFund} href={row.solAddress ? `https://solscan.io/token/${row.solAddress}` : undefined} /></td>
+              <td className="py-3 pr-4"><FlowCell value={row.ethTrd} href={row.ethAddress ? `https://etherscan.io/token/${row.ethAddress}` : undefined} /></td>
+              <td className="py-3 pr-4"><FlowCell value={row.solTrd} href={row.solAddress ? `https://solscan.io/token/${row.solAddress}` : undefined} /></td>
+              <td className="py-3 pr-4"><FlowCell value={row.eth7d} href={row.ethAddress ? `https://etherscan.io/token/${row.ethAddress}` : undefined} /></td>
+              <td className="py-3 pr-4"><FlowCell value={row.sol7d} href={row.solAddress ? `https://solscan.io/token/${row.solAddress}` : undefined} /></td>
+              <td className="py-3 pr-4"><FlowCell value={row.eth30d} href={row.ethAddress ? `https://etherscan.io/token/${row.ethAddress}` : undefined} /></td>
+              <td className="py-3 pr-4"><FlowCell value={row.sol30d} href={row.solAddress ? `https://solscan.io/token/${row.solAddress}` : undefined} /></td>
             </tr>
           ))}
         </tbody>

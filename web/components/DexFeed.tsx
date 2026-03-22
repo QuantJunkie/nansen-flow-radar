@@ -40,7 +40,18 @@ export function DexFeed({ trades }: Props) {
             >
               {t.side.toUpperCase()}
             </span>
-            <span className="font-mono text-xs text-gray-600 tabular-nums">{fmtUsd(t.valueUsd)}</span>
+            {t.txHash ? (
+              <a
+                href={t.chain === "ethereum" ? `https://etherscan.io/tx/${t.txHash}` : `https://solscan.io/tx/${t.txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-xs text-gray-600 tabular-nums underline decoration-dotted underline-offset-2 hover:opacity-70 transition-opacity"
+              >
+                {fmtUsd(t.valueUsd)}
+              </a>
+            ) : (
+              <span className="font-mono text-xs text-gray-600 tabular-nums">{fmtUsd(t.valueUsd)}</span>
+            )}
           </div>
         </div>
       ))}

@@ -14,6 +14,8 @@ export interface TokenRow {
   sol7d: number;
   eth30d: number;
   sol30d: number;
+  ethAddress?: string;
+  solAddress?: string;
 }
 
 export interface DexTrade {
@@ -22,6 +24,7 @@ export interface DexTrade {
   side: "buy" | "sell";
   valueUsd: number;
   label: string;
+  txHash?: string;
 }
 
 export interface SignalsResponse {
@@ -74,7 +77,11 @@ function dexTrades(chains: string[], labels: string[]) {
   });
 }
 
-function extractFlows(data: Record<string, unknown> | null, field = "net_flow_24h_usd"): Map<string, number> {
+function extractFlows(
+  data: Record<string, unknown> | null,
+  field = "net_flow_24h_usd",
+  addrMap?: Map<string, string>
+): Map<string, number> {
   const m = new Map<string, number>();
   if (!data || !Array.isArray(data.data)) return m;
   for (const row of data.data as Record<string, unknown>[]) {
@@ -82,6 +89,7 @@ function extractFlows(data: Record<string, unknown> | null, field = "net_flow_24
     if (!sym || STABLES.has(sym)) continue;
     const v = Number(row[field] ?? row.net_flow_24h_usd ?? row.value_usd ?? 0);
     m.set(sym, (m.get(sym) ?? 0) + v);
+    if (addrMap && row.token_address) addrMap.set(sym, String(row.token_address));
   }
   return m;
 }
@@ -99,6 +107,7 @@ function extractDexTrades(data: Record<string, unknown> | null, chain: string): 
       side,
       valueUsd: Number(r.trade_value_usd ?? r.value_usd ?? 0),
       label: String(r.trader_address_label ?? r.smart_money_label ?? r.label ?? ""),
+      txHash: r.transaction_hash ? String(r.transaction_hash) : undefined,
     };
   });
 }
@@ -134,21 +143,24 @@ export async function fetchSignals(): Promise<SignalsResponse> {
     call(() => dexTrades(["solana"],   ["Fund", "Smart Trader"])),
   ]);
 
+  const ethAddrs = new Map<string, string>();
+  const solAddrs = new Map<string, string>();
+
   const f = {
-    ethFund24h:  extractFlows(ethFund24h),
-    solFund24h:  extractFlows(solFund24h),
-    ethTrd24h:   extractFlows(ethTrd24h),
-    solTrd24h:   extractFlows(solTrd24h),
-    ethFund7d:   extractFlows(ethFund7d,  "net_flow_7d_usd"),
-    solFund7d:   extractFlows(solFund7d,  "net_flow_7d_usd"),
-    ethTrd7d:    extractFlows(ethTrd7d,   "net_flow_7d_usd"),
-    solTrd7d:    extractFlows(solTrd7d,   "net_flow_7d_usd"),
-    ethFund30d:  extractFlows(ethFund30d, "net_flow_30d_usd"),
-    solFund30d:  extractFlows(solFund30d, "net_flow_30d_usd"),
-    ethTrd30d:   extractFlows(ethTrd30d,  "net_flow_30d_usd"),
-    solTrd30d:   extractFlows(solTrd30d,  "net_flow_30d_usd"),
-    ethHold:     extractFlows(ethHold,    "value_usd"),
-    solHold:     extractFlows(solHold,    "value_usd"),
+    ethFund24h:  extractFlows(ethFund24h,  "net_flow_24h_usd", ethAddrs),
+    solFund24h:  extractFlows(solFund24h,  "net_flow_24h_usd", solAddrs),
+    ethTrd24h:   extractFlows(ethTrd24h,   "net_flow_24h_usd", ethAddrs),
+    solTrd24h:   extractFlows(solTrd24h,   "net_flow_24h_usd", solAddrs),
+    ethFund7d:   extractFlows(ethFund7d,   "net_flow_7d_usd",  ethAddrs),
+    solFund7d:   extractFlows(solFund7d,   "net_flow_7d_usd",  solAddrs),
+    ethTrd7d:    extractFlows(ethTrd7d,    "net_flow_7d_usd",  ethAddrs),
+    solTrd7d:    extractFlows(solTrd7d,    "net_flow_7d_usd",  solAddrs),
+    ethFund30d:  extractFlows(ethFund30d,  "net_flow_30d_usd", ethAddrs),
+    solFund30d:  extractFlows(solFund30d,  "net_flow_30d_usd", solAddrs),
+    ethTrd30d:   extractFlows(ethTrd30d,   "net_flow_30d_usd", ethAddrs),
+    solTrd30d:   extractFlows(solTrd30d,   "net_flow_30d_usd", solAddrs),
+    ethHold:     extractFlows(ethHold,     "value_usd",        ethAddrs),
+    solHold:     extractFlows(solHold,     "value_usd",        solAddrs),
   };
 
   const allTokens = new Set<string>();
@@ -186,13 +198,14 @@ export async function fetchSignals(): Promise<SignalsResponse> {
       eth30d: v.ef30,  sol30d: v.sf30,
     };
 
+    const addrs = { ethAddress: ethAddrs.get(tok), solAddress: solAddrs.get(tok) };
     if (cScore > 0) {
       const totalFlow = [v.ef24, v.sf24, v.et24, v.st24].filter(x => x > 0).reduce((a, b) => a + b, 0);
-      convergence.push({ ...base, score: cScore, crossChain: v.ef24 > 0 && v.sf24 > 0, totalFlow });
+      convergence.push({ ...base, ...addrs, score: cScore, crossChain: v.ef24 > 0 && v.sf24 > 0, totalFlow });
     }
     if (dScore > 0) {
       const totalFlow = [v.ef24, v.sf24, v.et24, v.st24].filter(x => x < 0).reduce((a, b) => a + b, 0);
-      divergence.push({ ...base, score: dScore, crossChain: v.ef24 < 0 && v.sf24 < 0, totalFlow });
+      divergence.push({ ...base, ...addrs, score: dScore, crossChain: v.ef24 < 0 && v.sf24 < 0, totalFlow });
     }
   }
 
