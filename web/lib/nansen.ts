@@ -176,8 +176,7 @@ export async function fetchSignals(): Promise<SignalsResponse> {
 
     const dScore = [v.ef24<0, v.sf24<0, v.et24<0, v.st24<0,
                     v.ef7<0,  v.sf7<0,  v.et7<0,  v.st7<0,
-                    v.ef30<0, v.sf30<0,
-                    v.eh>0,   v.sh>0].filter(Boolean).length;
+                    v.ef30<0, v.sf30<0].filter(Boolean).length;
 
     const base: Omit<TokenRow, "score" | "crossChain" | "totalFlow"> = {
       token: tok,
