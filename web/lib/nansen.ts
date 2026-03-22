@@ -69,7 +69,7 @@ function holdings(chains: string[], labels: string[]) {
 function dexTrades(chains: string[], labels: string[]) {
   return nansenPost("/api/v1/smart-money/dex-trades", {
     chains,
-    filters: { include_smart_money_labels: labels, include_stablecoins: false },
+    filters: { include_smart_money_labels: labels },
     pagination: { page: 1, per_page: 12 },
   });
 }
@@ -89,13 +89,16 @@ function extractFlows(data: Record<string, unknown> | null, field = "net_flow_24
 function extractDexTrades(data: Record<string, unknown> | null, chain: string): DexTrade[] {
   if (!data || !Array.isArray(data.data)) return [];
   return (data.data as Record<string, unknown>[]).slice(0, 7).map((r) => {
-    const sideRaw = String(r.side ?? r.trade_type ?? "").toLowerCase();
+    const boughtSym = String(r.token_bought_symbol ?? "").toUpperCase();
+    const soldSym = String(r.token_sold_symbol ?? "").toUpperCase();
+    const token = STABLES.has(boughtSym) ? soldSym : boughtSym || soldSym || "?";
+    const side: "buy" | "sell" = STABLES.has(soldSym) || (!STABLES.has(boughtSym) && boughtSym) ? "buy" : "sell";
     return {
       chain,
-      token: String(r.token_symbol ?? r.symbol ?? "?").toUpperCase(),
-      side: sideRaw.includes("buy") ? "buy" : "sell",
-      valueUsd: Number(r.value_usd ?? r.amount_usd ?? 0),
-      label: String(r.smart_money_label ?? r.label ?? ""),
+      token,
+      side,
+      valueUsd: Number(r.trade_value_usd ?? r.value_usd ?? 0),
+      label: String(r.trader_address_label ?? r.smart_money_label ?? r.label ?? ""),
     };
   });
 }
